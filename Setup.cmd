@@ -38,9 +38,15 @@ if errorlevel 1 goto launcher_fallback
 del horizon-windows-x64.zip
 
 :have_game
-if exist "%ROOT%minecraft\versions\26.3\26.3.jar" goto have_minecraft
-echo [3/3] Minecraft 26.3 from Mojang, about 650 MB
-python fetch-minecraft.py minecraft --version 26.3
+rem The Minecraft version is whatever this Horizon build pins, not a constant here: when a
+rem nightly moves to a new Minecraft, this picks it up.
+python -c "import json;print(json.load(open(r'horizon-windows-x64/research-lock.json'))['minecraft']['version'])" > "%TEMP%\horizon-version.txt"
+set /p MCVERSION=<"%TEMP%\horizon-version.txt"
+del "%TEMP%\horizon-version.txt"
+if not defined MCVERSION goto launcher_fallback
+if exist "%ROOT%minecraft\versions\%MCVERSION%\%MCVERSION%.jar" goto have_minecraft
+echo [3/3] Minecraft %MCVERSION% from Mojang, about 650 MB
+python fetch-minecraft.py minecraft --version %MCVERSION%
 if errorlevel 1 goto launcher_fallback
 
 :have_minecraft
