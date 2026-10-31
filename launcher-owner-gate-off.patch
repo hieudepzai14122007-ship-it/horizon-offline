@@ -1,0 +1,267 @@
+diff --git a/docs/microsoft-account.md b/docs/microsoft-account.md
+index bf835bc..e43289b 100644
+--- a/docs/microsoft-account.md
++++ b/docs/microsoft-account.md
+@@ -93,6 +93,24 @@ possible; the launcher just doesn't offer it on its own.
+   the launcher's tests use accounts in a memory store (`MemoryStore`, and `HORIZON_NO_KEYCHAIN`
+   for the CLI and MCP tests, which then have no owner).
+ 
++### This build: the gate is off
++
++This tree carries one change: `account::OWNER_GATE` is `false` (`launcher/src/account.rs`). With it
++off:
++
++- Play starts the game without asking the services: the selected account's session when there is
++  one, and the game's own name or the selected offline name otherwise. No account is needed.
++- Offline names can be added and played with no owner signed in (the hidden developer option in
++  `dev_options.rs` is no longer the only way).
++- "Download and prepare" downloads the pinned version from Mojang without an account. A version's
++  files are public at `piston-meta`, `piston-data`, `libraries.minecraft.net` and
++  `resources.download.minecraft.net`; only Horizon's own check was asking for one.
++- The owner screen never opens, and Play is available as if an owner were signed in.
++
++Sign-in still works, and an account that owns the game still gets its session: it is what
++online-mode servers and chat signing ask for. It is just no longer a condition of playing offline.
++Set `OWNER_GATE` to `true` to get the upstream behaviour back.
++
+ ## Downloading the game for an owner
+ 
+ Decided 2026-10-27. This is the only exception to "Horizon never downloads the game", and it
+diff --git a/launcher/src/account.rs b/launcher/src/account.rs
+index 848b306..8a4f239 100644
+--- a/launcher/src/account.rs
++++ b/launcher/src/account.rs
+@@ -25,6 +25,12 @@ pub const NOT_CONFIGURED: &str =
+ /// What every Play says while no account in the launcher owns the game.
+ pub const NEEDS_OWNER: &str =
+     "Sign in with a Microsoft account that owns Minecraft: Java Edition to play";
++/// Whether Play, offline names and Horizon's own download need a signed-in Microsoft account that
++/// owns Minecraft: Java Edition. Off in this build: Play starts the game with the game's own name
++/// or the selected offline name, and Horizon downloads the pinned version from Mojang for anyone (a
++/// version's files are public there; only the launchers ask for an account). Sign-in still works,
++/// and a signed-in account still gets its session for online-mode servers.
++pub const OWNER_GATE: bool = false;
+ const DOES_NOT_OWN: &str = "This account doesn't own Minecraft: Java Edition.";
+ const NO_PROFILE: &str =
+     "This account has no Minecraft profile yet. Create one at minecraft.net, then sign in again.";
+@@ -1017,7 +1023,7 @@ impl Accounts {
+                 self.selected = Some(uuid);
+             }
+             Player::Offline(name) => {
+-                if !offline_without_owner && !self.has_owner(store) {
++                if OWNER_GATE && !offline_without_owner && !self.has_owner(store) {
+                     return Err(OFFLINE_NEEDS_OWNER.into());
+                 }
+                 let name = self.add_offline(&name)?;
+@@ -1217,8 +1223,9 @@ pub fn launch(
+ 
+ /// The owner gate before the game starts. With the window's hidden developer option
+ /// (`backend::Settings::dev_offline`, `offline_without_owner`) no owner is no refusal: the game
+-/// starts offline, without a session and without an `owner`. Downloads never come through here:
+-/// `backend::download_for_owner` asks [`launch`] itself, so the option never downloads the game.
++/// starts offline, without a session and without an `owner`. With [`OWNER_GATE`] off (this build)
++/// no owner is no refusal either, whatever `offline_without_owner` says. Downloads never come
++/// through here: `backend::download_for_owner` asks [`launch`] itself.
+ pub fn launch_for_game(
+     ep: &Endpoints,
+     client_id: Option<&str>,
+@@ -1227,7 +1234,7 @@ pub fn launch_for_game(
+     offline_without_owner: bool,
+ ) -> Result<Launch, NoOwner> {
+     match launch(ep, client_id, store, accounts) {
+-        Err(NoOwner) if offline_without_owner => Ok(Launch::default()),
++        Err(NoOwner) if !OWNER_GATE || offline_without_owner => Ok(Launch::default()),
+         pass => pass,
+     }
+ }
+diff --git a/launcher/src/backend.rs b/launcher/src/backend.rs
+index 87016f5..c46a583 100644
+--- a/launcher/src/backend.rs
++++ b/launcher/src/backend.rs
+@@ -1489,7 +1489,8 @@ pub fn java_game(
+ }
+ 
+ /// What [`download_for_owner`] does with the owner gate's answer: Mojang's files only for its
+-/// `owner`, an account the services said owns the game just now.
++/// `owner`, an account the services said owns the game just now — or, with [`account::OWNER_GATE`]
++/// off (this build), for anyone who pressed Play.
+ fn download_for(
+     pins: &sources::Pins,
+     dir: &Path,
+@@ -1499,23 +1500,27 @@ fn download_for(
+     log: &dyn Fn(String),
+ ) -> Result<(), String> {
+     let v = &pins.version;
++    let pass = if account::OWNER_GATE {
++        pass
++    } else {
++        Ok(account::Launch::default())
++    };
+     match pass {
+         Ok(account::Launch {
+             owner: Some((owner, _)),
+             ..
+         }) => {
+-            let name = owner.name;
+             log(format!(
+-                "{name} owns Minecraft: downloading {v} from Mojang"
++                "{} owns Minecraft: downloading {v} from Mojang",
++                owner.name
+             ));
+-            let os = match sources::Os::current() {
+-                sources::Os::Linux => "linux",
+-                sources::Os::MacOs => "osx",
+-                sources::Os::Windows => "windows",
+-            };
+-            mojang::download(pins, dir, os, 8, fetch, &mojang::CANCEL, log).map_err(|e| {
+-                format!("\n  • Horizon tried to download {v} from Mojang for {name}, but: {e}")
+-            })
++            download_pinned(pins, dir, Some(&owner.name), fetch, log)
++        }
++        // No owner gate in this build: a version's files are public at Mojang's, so Play on a
++        // fresh install downloads them without asking anyone for an account.
++        Ok(_) if !account::OWNER_GATE => {
++            log(format!("Downloading {v} from Mojang"));
++            download_pinned(pins, dir, None, fetch, log)
+         }
+         // An owner by its last answer, who can't be asked now.
+         Ok(pass) => Err(format!(
+@@ -1534,6 +1539,29 @@ fn download_for(
+     }
+ }
+ 
++/// Downloads the pinned version's files from Mojang into `dir`, `who` being the account it is for
++/// when one is.
++fn download_pinned(
++    pins: &sources::Pins,
++    dir: &Path,
++    who: Option<&str>,
++    fetch: sources::Fetch,
++    log: &dyn Fn(String),
++) -> Result<(), String> {
++    let v = &pins.version;
++    let os = match sources::Os::current() {
++        sources::Os::Linux => "linux",
++        sources::Os::MacOs => "osx",
++        sources::Os::Windows => "windows",
++    };
++    mojang::download(pins, dir, os, 8, fetch, &mojang::CANCEL, log).map_err(|e| match who {
++        Some(name) => {
++            format!("\n  • Horizon tried to download {v} from Mojang for {name}, but: {e}")
++        }
++        None => format!("\n  • Horizon tried to download {v} from Mojang, but: {e}"),
++    })
++}
++
+ /// The Java home for this version: a runtime for precompiled exporters, a JDK for older
+ /// preparers or changed sources. Forward the selection to external preparers too.
+ /// Else try the official launcher's Java in `games`, then download the runtime named by
+@@ -2554,9 +2582,12 @@ pub fn exe_path() -> &'static Path {
+     EXE.get_or_init(|| std::env::current_exe().unwrap_or_else(|_| PathBuf::from(LAUNCHER_BINARY)))
+ }
+ 
+-/// Development builds and `HORIZON_LAUNCHER_NO_SELF_UPDATE` never replace themselves.
++/// Development builds, `HORIZON_LAUNCHER_NO_SELF_UPDATE`, and a build without the owner gate never
++/// replace themselves: an official launcher would put the gate back, overwriting this binary.
+ pub fn self_update_allowed() -> bool {
+-    !cfg!(debug_assertions) && std::env::var_os("HORIZON_LAUNCHER_NO_SELF_UPDATE").is_none()
++    !cfg!(debug_assertions)
++        && account::OWNER_GATE
++        && std::env::var_os("HORIZON_LAUNCHER_NO_SELF_UPDATE").is_none()
+ }
+ 
+ /// The version in `horizon-launcher --version`'s output (`horizon-launcher 0.1.5`).
+diff --git a/launcher/src/cli.rs b/launcher/src/cli.rs
+index 725f8bd..2aeb80c 100644
+--- a/launcher/src/cli.rs
++++ b/launcher/src/cli.rs
+@@ -106,8 +106,8 @@ enum ServersCmd {
+ enum AccountCmd {
+     /// The signed-in accounts and which one plays
+     List,
+-    /// Sign in with a Microsoft account in your browser (device code). Play needs one that owns
+-    /// Minecraft: Java Edition
++    /// Sign in with a Microsoft account in your browser (device code): the session that
++    /// online-mode servers ask for
+     SignIn,
+     /// Sign out: the account's tokens leave the keychain
+     SignOut {
+@@ -116,7 +116,7 @@ enum AccountCmd {
+     },
+     /// Play as this account, or as one of your offline names
+     Select { who: String },
+-    /// Play offline (LAN, offline-mode servers) beside a signed-in account that owns the game:
++    /// Play offline (LAN, offline-mode servers):
+     /// as NAME (kept to switch back to; 3 to 16 letters, digits or _), or as the name the game
+     /// made up
+     Offline { name: Option<String> },
+@@ -709,7 +709,7 @@ enum Cmd {
+         #[arg(long)]
+         version: Option<String>,
+     },
+-    /// Start the client (needs a signed-in Microsoft account that owns Minecraft: Java Edition)
++    /// Start the client
+     Play {
+         #[arg(long)]
+         version: Option<String>,
+@@ -1695,8 +1695,8 @@ fn account_command(action: AccountCmd, as_json: bool) -> Result<(), String> {
+                 }));
+             } else if accounts.accounts.is_empty() && accounts.offline.is_empty() {
+                 println!(
+-                    "No Microsoft account signed in. Play needs one that owns Minecraft: Java \
+-                     Edition: horizon-launcher account sign-in"
++                    "No Microsoft account signed in: playing offline as the game's own name \
++                     (`account sign-in` adds one for online-mode servers)."
+                 );
+             } else {
+                 for a in &accounts.accounts {
+@@ -1716,7 +1716,7 @@ fn account_command(action: AccountCmd, as_json: bool) -> Result<(), String> {
+                         "Playing offline as the game's own name (`account select NAME` to switch)."
+                     );
+                 }
+-                if !accounts.has_owner(account::store()) {
++                if account::OWNER_GATE && !accounts.has_owner(account::store()) {
+                     println!("{}.", account::NEEDS_OWNER);
+                 }
+             }
+diff --git a/launcher/src/main.rs b/launcher/src/main.rs
+index 3e242fa..366abc1 100644
+--- a/launcher/src/main.rs
++++ b/launcher/src/main.rs
+@@ -767,7 +767,8 @@ impl Launcher {
+                 // The page reads is_prepared when drawn; `changed` redraws it.
+                 Msg::Reused(_) => self.installed = backend::installed(),
+                 Msg::Keychain(said) => self.keychain = said,
+-                Msg::Owner(owns) => self.owner = Some(owns),
++                // With the owner gate off (this build) Play is open whatever the keychain says.
++                Msg::Owner(owns) => self.owner = Some(!account::OWNER_GATE || owns),
+                 Msg::Playing(playing) => self.playing = playing,
+                 Msg::JavaGame(id, home, cmd) => {
+                     self.starting_client = None;
+@@ -3419,7 +3420,7 @@ impl Launcher {
+                             Ok(()) => this.accounts = accounts,
+                             Err(e) => this.sign_in_state = Some(SignInState::Done(Err(e))),
+                         }
+-                        this.owner = Some(this.accounts.has_owner(account::store()));
++                        this.owner = Some(!account::OWNER_GATE || this.accounts.has_owner(account::store()));
+                         cx.notify();
+                     },
+                 )),
+diff --git a/launcher/src/owner_page.rs b/launcher/src/owner_page.rs
+index 4b8ee5b..21fe42c 100644
+--- a/launcher/src/owner_page.rs
++++ b/launcher/src/owner_page.rs
+@@ -15,8 +15,12 @@ impl Launcher {
+     }
+ 
+     /// `owner` as the window shows it: the developer option that lets offline names play without
+-    /// an owner (`dev_options`) hides the gate, as if the keychain hadn't answered yet.
++    /// an owner (`dev_options`) hides the gate, as if the keychain hadn't answered yet, and with
++    /// [`account::OWNER_GATE`] off (this build) the gate is never shown at all.
+     pub(crate) fn owner_shown(&self) -> Option<bool> {
++        if !account::OWNER_GATE {
++            return None;
++        }
+         match self.owner {
+             Some(false) if self.settings.dev_offline => None,
+             owner => owner,

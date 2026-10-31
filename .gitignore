@@ -1,0 +1,8 @@
+# Track only the hand-written files. Binaries and Mojang's game files stay local:
+# fetch-minecraft.py re-downloads 26.3, the launcher exe is attached to the GitHub release.
+/*
+!/.gitignore
+!/README.md
+!/*.py
+!/*.cmd
+!/*.patch
