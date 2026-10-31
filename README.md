@@ -1,86 +1,102 @@
-# Horizon offline — Minecraft 26.3, no Microsoft account
+# Horizon offline — Minecraft: Java Edition 26.3, no Microsoft account
 
-Horizon is Minecraft: Java Edition 26.3 rebuilt in Rust. Upstream it only starts from its launcher,
-and that launcher refuses to play until a Microsoft account that owns Java Edition is signed in.
-This folder is the same game with that requirement removed: nothing here asks you to sign in.
+Horizon is Minecraft 26.3 rewritten from scratch in Rust. Its launcher normally refuses to start the
+game until a Microsoft account that owns Java Edition is signed in. This build has that check
+removed: it plays without an account.
 
-> **This repository** holds the scripts, the patch and this README only. The game binaries, Mojang's
-> 26.3 files and the prepared resources are gigabytes, so they are not in git — the repository zip
-> on its own has nothing to play. Run **`Setup.cmd`** once and it builds the folder: Horizon's
-> release zip (29 MB), Minecraft 26.3 from Mojang (650 MB), then `horizon-prepare` (a few minutes).
-> The patched launcher is attached to the GitHub release; `Setup.cmd` fetches it into `launcher\`
-> when it is there, and `Horizon-Launcher.cmd` opens it.
-> Step by step on a new PC, from this link alone: **[GUIDE.md](GUIDE.md)**.
+## How to play
 
-## Play
+1. **Download this repository** — green **Code** button → **Download ZIP**.
+2. **Extract it** somewhere you can write, e.g. `C:\Users\you\Horizon`. Not in `Program Files`.
+3. **Double-click `Setup.cmd`.** It builds the game folder: the patched launcher, Horizon's nightly,
+   Minecraft 26.3 from Mojang, then the prepared resources. About 700 MB and ten minutes the first
+   time, and it prints each step.
+4. **Double-click `Play-Horizon.cmd`.** That is the game.
 
-Double-click **`Play-Horizon.cmd`**.
+Want the launcher window instead — version picker, mods, servers, hosting? Double-click
+`Horizon-Launcher.cmd` and press Play.
 
-- The first run makes up a player name and keeps it (`horizon-player.txt`); pass `--name <name>` to
-  choose one, e.g. `Play-Horizon.cmd --name Steve`.
-- Worlds, options, packs and mods live in `horizon-windows-x64\` (`saves\`, `options.txt`,
-  `resourcepacks\`, `mods\`). Back up `saves\` and you keep your worlds.
-- `Play-Horizon.cmd --server host:port` joins a server at start (offline-mode servers only, see
-  below).
-- Logs and crash reports: `horizon-windows-x64\logs\`, `horizon-windows-x64\crash-reports\`.
+No Microsoft sign-in, no Minecraft install, no Rust.
 
-Or run the game yourself:
+### If `Setup.cmd` says Python or Java is missing
 
-```
-cd horizon-windows-x64
-set HORIZON_HOME=%CD%
-horizon-client.exe --resources ".local/horizon-client/26.3" --name Steve
-```
+Use **`Horizon-Launcher.cmd`** and press Play. The launcher downloads Mojang's own Java 25 and
+Minecraft 26.3 and prepares them itself, so nothing needs installing first. (Or install
+[Python 3](https://www.python.org/downloads/) and
+[Java 25](https://adoptium.net/temurin/releases/?version=25) and run `Setup.cmd` again for the
+direct route.)
 
-## What is in here
+### What you need
 
-| Path | What it is |
+- Windows 10 or 11, 64-bit
+- A GPU with Vulkan or DirectX 12 — any discrete card, or recent integrated graphics
+- About 3 GB free; about 700 MB downloaded on the first run
+- Internet for that first run only
+
+## Troubleshooting
+
+| Symptom | Fix |
 | --- | --- |
-| `Play-Horizon.cmd` | Starts the game offline, straight away |
-| `Horizon-Launcher.cmd` | Opens the rebuilt launcher's window, its data already installed and prepared in `launcher-home\` |
-| `horizon-windows-x64\` | The game (`horizon-client.exe`), `horizon-ctl.exe` (scripting/agent control), `horizon-server.exe`, `horizon-prepare.exe` |
-| `horizon-windows-x64\.local\horizon-client\26.3\` | The prepared resources: 598 MB of game data, textures, models, languages and sounds, exported from the 26.3 client jar |
-| `horizon-windows-x64\.local\minecraft\26.3\` | The imported game files the preparation read (jars, libraries, class lists) |
-| `minecraft\` | Minecraft 26.3 as downloaded from Mojang: client jar, server jar, 74 libraries, 5 147 assets |
-| `launcher\` | The Horizon launcher, rebuilt from this folder's source with the owner gate removed |
-| `launcher-home\` | That launcher's data: the installed game build and its own prepared copy of 26.3 |
-| `launcher-owner-gate-off.patch` | The whole change, as a `git diff` of `horizon\` |
-| `fetch-minecraft.py` | Downloads 26.3 from Mojang's public CDN into `minecraft\`, every file checked against Mojang's sha1 |
-| `crates-relay.py`, `prefetch-crates.py` | Build helpers: cargo cannot do TLS on this machine, so these relay crates.io over plain HTTP on localhost |
+| `Cannot find "...\horizon-windows-x64\horizon-client.exe"` | The folder is not built yet: run `Setup.cmd`, or `Horizon-Launcher.cmd` → Play |
+| Tiny menus | Options → Video Settings → GUI Scale → Auto |
+| Low frame rate | Options → Video Settings → render distance 12–16 (the default here can be 128) |
+| "Sign in to play" appears | The official launcher replaced this one by self-updating: download `horizon-launcher.exe` from [the release](../../releases/latest) over `launcher\horizon-launcher.exe`, and always start it with `Horizon-Launcher.cmd`, which blocks the update |
+| Server says "Failed to verify username" | That server verifies accounts with Mojang; no client-side change can join it |
+| No sound | `horizon-windows-x64\horizon-prepare.exe sounds --minecraft-dir minecraft` |
 
-Two installs of the game is one more than you need: `horizon-windows-x64\` (for `Play-Horizon.cmd`)
-and `launcher-home\versions\...` (for the launcher) are independent copies. Delete either if you
-want the space back.
+More detail, including what is and is not in git: **[GUIDE.md](GUIDE.md)**.
+
+## What the download contains
+
+| In git (a few KB) | Built by `Setup.cmd` |
+| --- | --- |
+| `Setup.cmd`, `Play-Horizon.cmd`, `Horizon-Launcher.cmd` | `horizon-windows-x64\` — Horizon's own release zip, 29 MB |
+| `fetch-minecraft.py` — downloads 26.3 from Mojang, sha1-checked | `minecraft\` — Minecraft 26.3 from Mojang, 650 MB |
+| `crates-relay.py`, `prefetch-crates.py` — build helpers for the Rust side | `launcher\horizon-launcher.exe` — the patched launcher, 41 MB, from [the release](../../releases/latest) |
+| `launcher-owner-gate-off.patch`, `README.md`, `GUIDE.md` | `horizon-windows-x64\.local\horizon-client\26.3\` — prepared resources, 600 MB |
+
+The game files are not in git on purpose: they are gigabytes, and they are Mojang's. That is also
+why the repository ZIP alone is not playable — it is the scripts, not the game. `Setup.cmd` is the
+step that turns one into the other.
 
 ## What was changed
 
-The gate lives in the launcher only — the game binary never had one. Five files in
-`horizon\launcher\src\` carry the change (the patch is `launcher-owner-gate-off.patch`):
+The gate lives in the launcher only; the game binary never had one. Five files in
+`horizon/launcher/src` carry the change, as `launcher-owner-gate-off.patch` against upstream:
 
-- `account.rs` — new `OWNER_GATE: bool = false`. With it off, `launch_for_game` treats "no account
+- `account.rs` — a new `OWNER_GATE: bool = false`. With it off, `launch_for_game` treats "no account
   owns the game" as "play offline" instead of a refusal, and offline names no longer need an owner.
-- `backend.rs` — `download_for` downloads the pinned version from Mojang without an account
-  (a version's files are public at Mojang's; only the launcher's check was asking for one), and
+- `backend.rs` — `download_for` downloads the pinned version from Mojang for anyone (a version's
+  files are public at Mojang's; only the launcher's check was asking for an account), and
   `self_update_allowed` refuses to replace this build with the official launcher, which would put
   the gate back.
-- `main.rs` — the window treats Play as available, so a fresh install can download, prepare and
-  play without a sign-in, and the owner screen never opens.
+- `main.rs` — the window treats Play as available, so a fresh install can download, prepare and play
+  without a sign-in, and the owner screen never opens.
+- `owner_page.rs` — the "Sign in to play" screen is never shown.
 - `cli.rs` — help and `account list` no longer claim an account is required.
 
-`docs/microsoft-account.md` in `horizon\` documents the state of the gate in this tree.
+Sign-in still works and still gives you a session: it is what online-mode servers and chat signing
+ask for. It just no longer decides whether you may play at all.
 
-## Where the game files came from
+To rebuild the launcher from upstream's source with the patch:
 
-`fetch-minecraft.py` reads Mojang's version manifest, finds 26.3, and downloads what the version
-JSON lists: the client jar, the server jar, the libraries, the asset index and every asset object.
-All of it is public; no account, token or launcher involved.
+```
+git clone https://github.com/horizon-rust/horizon.git
+cd horizon && git apply launcher-owner-gate-off.patch
+cd launcher && cargo build --release
+```
+
+## Where the game files come from
+
+`fetch-minecraft.py` reads Mojang's version manifest, finds 26.3, and downloads what that version's
+JSON lists: the client jar, the server jar, the libraries, the asset index and every asset object,
+each checked against Mojang's sha1. All of it is public; no account or token involved.
 
 ```
 python fetch-minecraft.py minecraft --version 26.3
 ```
 
-Then the release preparer built the game's resources from those files with the JDK 25 already on
-this machine:
+Then `horizon-prepare.exe` exports the game's resources from those files (Java 25 needed):
 
 ```
 cd horizon-windows-x64
@@ -88,80 +104,27 @@ horizon-prepare.exe --prepare --server-jar ..\minecraft\server.jar --minecraft-d
 horizon-prepare.exe sounds --minecraft-dir ..\minecraft
 ```
 
-## The launcher
-
-`launcher\horizon-launcher.exe` is `horizon\launcher` built in release mode with the patch above. It
-installs, prepares and starts Horizon like the official launcher, minus the gate.
-
-Double-click **`Horizon-Launcher.cmd`** for its window: that points its data folder at
-`launcher-home\` here, where `nightly-2026-10-31-68ac6f6` is already installed and prepared, so
-Play starts the game at once. The same folder answers the launcher's data-collection question as
-"send nothing", so it does not ask: `launcher\horizon-launcher.exe data allow crashes` (or
-`data deny all`) changes that from a terminal, and Settings → Data collection from the window.
-
-Two things about that build worth knowing:
-
-- **It never updates itself.** `backend::self_update_allowed` returns false when the owner gate is
-  off, because the update it would fetch is the official launcher — which replaces the binary and
-  puts the gate back. Game versions still install and update through it; only the launcher binary
-  stays put.
-- If you ever run the official launcher from this folder, it will offer to update and you get the
-  gate back ("Sign in to play"). Restore this one from `horizon\launcher` with the rebuild below.
-
-From a terminal:
-
-```
-set HORIZON_LAUNCHER_HOME=%CD%\launcher-home
-launcher\horizon-launcher.exe install latest
-launcher\horizon-launcher.exe prepare --version nightly-2026-10-31-68ac6f6 --download
-launcher\horizon-launcher.exe play
-```
-
-The middle line is the one that used to need an account. It printed `Downloading 26.3 from Mojang`,
-fetched the version file, 76 jars and 5 147 assets, prepared them with the JDK, and `play` started
-the game — no sign-in anywhere. That is what `launcher-home\` now holds (1.8 GB).
-
-Without `HORIZON_LAUNCHER_HOME`, the launcher keeps its data in `%APPDATA%\horizon-launcher` and the
-game's own data in `%APPDATA%\horizon` (saves, options, logs); `HORIZON_HOME` moves the latter. Do
-that if you want the launcher to manage its own copy instead of using `launcher-home\`.
-
-`account sign-in` still works and still gives you a session — that is what **online-mode** servers
-and chat signing ask for. What it no longer does is decide whether you may play at all.
-
-To rebuild it after changing the source (every crate is already cached in `..\.cargo-home`):
-
-```
-cd ..\horizon\launcher
-set CARGO_HOME=..\..\.cargo-home
-cargo build --release
-```
-
-Cargo's own TLS cannot get credentials in this sandbox (Schannel), so run the relay first in another
-terminal: `python ..\..\horizon-offline\crates-relay.py`. With the relay stopped,
-`cargo build --release --offline` works too: the crates are all in the cache already.
-
 ## What still needs an account
 
-- **Online-mode servers** (the default for public servers): they verify your session against
-  Mojang, whoever launches the game. Nothing on this side can change that; use an offline-mode
-  server, your own LAN world, or sign in.
+- **Online-mode servers** (the default for public servers) verify your session with Mojang, whoever
+  launches the game. Nothing on this side can change that: use an offline-mode server, your own LAN
+  world, or sign in.
 - **Chat signing** on servers with `enforce-secure-profile=true` needs the profile key pair, which
   comes from a signed-in account.
 - **Realms** are Microsoft's service.
 
-Everything else — single player, LAN, offline-mode servers, mods, packs, the dedicated server
-(`horizon-server.exe`) — runs with no account at all.
+Everything else — single player, LAN, offline-mode servers, mods, packs, the dedicated server — runs
+with no account at all.
 
-## Updating
+## Updating the game
 
-The game is a nightly build (`68ac6f6`, 2026-10-31). To move to a newer one, download its
+The game is a nightly build (`68ac6f6`, 2026-10-31). To move to a newer one, take
 `horizon-windows-x64.zip` from <https://github.com/horizon-rust/horizon/releases>, replace the four
-`.exe` files, and run `horizon-prepare.exe --prepare ...` again if `research-lock.json` in that
+`.exe` files in `horizon-windows-x64\`, and run `horizon-prepare.exe --prepare ...` again if that
 build pins another Minecraft version.
 
 ## Licence
 
-Horizon is MIT (`horizon\LICENSE`); this folder holds no Mojang code, textures or sounds other than
-what `horizon-prepare` extracted from the 26.3 client jar for this machine. Minecraft is a
-trademark of Mojang Synergies AB; its code and assets belong to Mojang and Microsoft under the
-Minecraft EULA.
+Horizon is MIT; this repository holds none of its game code. Minecraft is a trademark of Mojang
+Synergies AB, and its code and assets belong to Mojang and Microsoft under the Minecraft EULA: none
+of them are committed here, and each machine prepares its own from Mojang's public download.
