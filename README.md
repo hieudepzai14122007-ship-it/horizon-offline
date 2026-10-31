@@ -4,11 +4,13 @@ Horizon is Minecraft: Java Edition 26.3 rebuilt in Rust. Upstream it only starts
 and that launcher refuses to play until a Microsoft account that owns Java Edition is signed in.
 This folder is the same game with that requirement removed: nothing here asks you to sign in.
 
-> **This repository** holds the scripts, the patch and this README only. The patched launcher
-> (`launcher\horizon-launcher.exe`) is attached to the GitHub release; put it in `launcher\` and run
-> `Horizon-Launcher.cmd`, which installs the game and downloads 26.3 from Mojang itself.
-> `minecraft\`, `horizon-windows-x64\` and `launcher-home\` are not in git (Mojang's files, 5 GB):
-> rebuild them with `fetch-minecraft.py` and the commands below.
+> **This repository** holds the scripts, the patch and this README only. The game binaries, Mojang's
+> 26.3 files and the prepared resources are gigabytes, so they are not in git — the repository zip
+> on its own has nothing to play. Run **`Setup.cmd`** once and it builds the folder: Horizon's
+> release zip (29 MB), Minecraft 26.3 from Mojang (650 MB), then `horizon-prepare` (a few minutes).
+> The patched launcher is attached to the GitHub release; `Setup.cmd` fetches it into `launcher\`
+> when it is there, and `Horizon-Launcher.cmd` opens it.
+> Step by step on a new PC, from this link alone: **[GUIDE.md](GUIDE.md)**.
 
 ## Play
 
