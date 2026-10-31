@@ -4,19 +4,13 @@ Horizon is Minecraft 26.3 rewritten from scratch in Rust. Its launcher normally 
 game until a Microsoft account that owns Java Edition is signed in. This build has that check
 removed: it plays without an account.
 
-## How to play
+## Set it up (once)
 
 1. **Download this repository** — green **Code** button → **Download ZIP**.
 2. **Extract it** somewhere you can write, e.g. `C:\Users\you\Horizon`. Not in `Program Files`.
 3. **Double-click `Setup.cmd`.** It builds the game folder: the patched launcher, Horizon's nightly,
    Minecraft 26.3 from Mojang, then the prepared resources. About 700 MB and ten minutes the first
    time, and it prints each step.
-4. **Double-click `Play-Horizon.cmd`.** That is the game.
-
-Want the launcher window instead — version picker, mods, servers, hosting? Double-click
-`Horizon-Launcher.cmd` and press Play.
-
-No Microsoft sign-in, no Minecraft install, no Rust.
 
 ### If `Setup.cmd` says Python or Java is missing
 
@@ -32,6 +26,29 @@ direct route.)
 - A GPU with Vulkan or DirectX 12 — any discrete card, or recent integrated graphics
 - About 3 GB free; about 700 MB downloaded on the first run
 - Internet for that first run only
+
+## Run the game
+
+**Double-click `Play-Horizon.cmd`.** No sign-in, no Minecraft install, no Rust.
+
+- The window opens on the title screen. The first launch asks about the Narrator and accessibility
+  settings — press **Continue**.
+- **Singleplayer → Create New World** (or select a world and **Play Selected World**). It is vanilla
+  world generation: same seeds, same terrain, same mobs.
+- Mouse look, **WASD** move, **Space** jump, **Shift** sneak, **Ctrl** sprint, **left click** break,
+  **right click** place/use, **1–9** or the wheel for the hotbar, **E** inventory, **Q** drop, **F1**
+  hide the HUD, **F3** debug screen, **F2** screenshot, **F11** fullscreen, **Esc** pause.
+- **Esc → Save and Quit to Title** writes the world to `horizon-windows-x64\saves\`. Copy that folder
+  and you have a backup.
+- The player name is made up once and kept in `horizon-windows-x64\horizon-player.txt`;
+  `Play-Horizon.cmd --name Steve` chooses your own.
+- **Play with a friend on your network:** one of you presses **Esc → Open to LAN**, the other
+  **Multiplayer → Direct Connect** with the address shown. To join a server at start:
+  `Play-Horizon.cmd --server 192.168.1.20:25565` — offline-mode servers only, see
+  [What still needs an account](#what-still-needs-an-account).
+
+Prefer the launcher window — version picker, mods, servers, hosting a dedicated server? Double-click
+**`Horizon-Launcher.cmd`** and press **Play**.
 
 ## Troubleshooting
 
