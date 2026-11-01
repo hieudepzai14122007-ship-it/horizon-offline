@@ -12,10 +12,9 @@ if not exist "%~dp0launcher\horizon-launcher.exe" (
 )
 set "HORIZON_LAUNCHER_HOME=%~dp0launcher-home"
 set "HORIZON_HOME=%~dp0launcher-home\game"
-rem Exclusive fullscreen crashes the game at every start on laptops where Windows refuses the
-rem mode switch (see Play-Horizon.cmd); borderless fullscreen looks the same.
-set "OPTS=%HORIZON_HOME%\options.txt"
-findstr /b /c:"exclusiveFullscreen:true" "%OPTS%" >nul 2>nul && powershell -NoProfile -Command "$f='%OPTS%'; [IO.File]::WriteAllText($f, ([IO.File]::ReadAllText($f) -replace '(?m)^exclusiveFullscreen:true','exclusiveFullscreen:false'))"
+rem The exclusive fullscreen crash fix (see Play-Horizon.cmd) for every game version the launcher
+rem installed. A version it installs while open is patched the next time this starts.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0fix-fullscreen-crash.ps1" "%~dp0launcher-home\versions\*\horizon-client.exe"
 rem Never let it replace itself with the official launcher: that one has the Microsoft gate back.
 set "HORIZON_LAUNCHER_NO_SELF_UPDATE=1"
 start "" "%~dp0launcher\horizon-launcher.exe" %*
