@@ -6,4 +6,5 @@
 !/GUIDE.md
 !/*.py
 !/*.cmd
+!/*.ps1
 !/*.patch

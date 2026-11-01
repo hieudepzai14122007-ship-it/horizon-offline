@@ -37,7 +37,7 @@ inside `horizon-windows-x64\` for the direct one), so deleting the folder remove
 
 | Tracked here | Downloaded by `Setup.cmd` |
 | --- | --- |
-| `Setup.cmd`, `Play-Horizon.cmd`, `Horizon-Launcher.cmd` | `horizon-windows-x64\` — Horizon's own release zip, 29 MB |
+| `Setup.cmd`, `Play-Horizon.cmd`, `Horizon-Launcher.cmd`, `fix-fullscreen-crash.ps1` | `horizon-windows-x64\` — Horizon's own release zip, 29 MB |
 | `fetch-minecraft.py`, `crates-relay.py`, `prefetch-crates.py` | `minecraft\` — Minecraft 26.3 from Mojang, 650 MB |
 | `README.md`, `GUIDE.md`, `launcher-owner-gate-off.patch` | `launcher\horizon-launcher.exe` — 41 MB, from this repo's release |
 | | `.local\horizon-client\26.3\` — the prepared game resources, 600 MB |
@@ -59,6 +59,11 @@ Mojang's Java itself. Or install [Python](https://www.python.org/downloads/) and
 updating itself. Download `horizon-launcher.exe` from this repository's release again, overwrite
 `launcher\horizon-launcher.exe`, and always start it with `Horizon-Launcher.cmd`, which blocks the
 self-update.
+
+**It crashes when fullscreen is turned on (`window.rs:744` in the crash report)** — exclusive
+fullscreen, refused by Windows on laptops whose screen runs on the integrated GPU. Both launch
+scripts patch the game so it carries on in borderless fullscreen instead; start it with them.
+Each patched `horizon-client.exe` keeps its original beside it as `horizon-client.exe.orig`.
 
 **The menus are tiny** — Options → Video Settings → GUI Scale → Auto.
 

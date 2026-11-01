@@ -11,5 +11,8 @@ if not exist "%GAME%\horizon-client.exe" (
 set "HORIZON_HOME=%GAME%"
 rem Saves, options.txt, packs and mods stay in the game folder.
 cd /d "%GAME%"
+rem Exclusive fullscreen crashes the game on laptops where Windows refuses the mode switch (screen
+rem on the integrated GPU, game on the discrete one): this makes the game carry on instead.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0fix-fullscreen-crash.ps1" "%GAME%\horizon-client.exe"
 rem --name picks the offline name; without it the game keeps one it generates once.
 "%GAME%\horizon-client.exe" --resources ".local/horizon-client/26.3" %*
